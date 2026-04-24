@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BFHL Hierarchy Processor</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-soft: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #22c55e;
+      --accent-2: #38bdf8;
+      --danger: #fb7185;
+      --border: rgba(255, 255, 255, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.14), transparent 26%),
+        var(--bg);
+      color: var(--text);
+      padding: 32px 16px;
+    }
+
+    .container {
+      width: min(1100px, 100%);
+      margin: 0 auto;
+    }
+
+    .hero {
+      margin-bottom: 20px;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--accent-2);
+      background: rgba(255, 255, 255, 0.04);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 14px 0 8px;
+      font-size: clamp(2rem, 4vw, 3.5rem);
+      line-height: 1.05;
+    }
+
+    .subtitle {
+      max-width: 720px;
+      color: var(--muted);
+      margin: 0;
+      line-height: 1.6;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .card {
+      background: rgba(17, 24, 39, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(10px);
+    }
+
+    label {
+      display: block;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 280px;
+      resize: vertical;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      padding: 14px;
+      font-size: 15px;
+      line-height: 1.5;
+      outline: none;
+    }
+
+    textarea:focus {
+      border-color: rgba(56, 189, 248, 0.8);
+      box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.16);
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 12px 18px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #04111f;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: var(--panel-soft);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      min-height: 330px;
+      overflow: auto;
+    }
+
+    .status {
+      margin-top: 12px;
+      min-height: 24px;
+      font-size: 14px;
+    }
+
+    .status.error {
+      color: var(--danger);
+    }
+
+    .status.success {
+      color: var(--accent);
+    }
+
+    @media (max-width: 900px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <section class="hero">
+      <span class="eyebrow">BFHL Hierarchy Processor</span>
+      <h1>Build and inspect relationship hierarchies.</h1>
+      <p class="subtitle">Paste a JSON array of relationships, send it to <code>/bfhl</code>, and review the structured hierarchy response, invalid entries, duplicates, and summary output.</p>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <label for="inputData">Input Array</label>
+        <textarea id="inputData">["A->B", "A->C", "B->D"]</textarea>
+        <div class="actions">
+          <button id="submitBtn">Process Hierarchy</button>
+          <span class="hint">Example: ["A->B", "A->C", "B->D"]</span>
+        </div>
+        <div id="status" class="status"></div>
+      </div>
+
+      <div class="card">
+        <label>Response</label>
+        <pre id="output">Waiting for a request...</pre>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const inputData = document.getElementById('inputData');
+    const submitBtn = document.getElementById('submitBtn');
+    const output = document.getElementById('output');
+    const status = document.getElementById('status');
+    const API_URL = window.BFHL_API_URL || (window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
+      ? '/bfhl'
+      : 'https://YOUR-RENDER-SERVICE.onrender.com/bfhl');
+
+    function setStatus(message, type = '') {
+      status.className = `status ${type}`.trim();
+      status.textContent = message;
+    }
+
+    function renderOutput(value) {
+      output.textContent = JSON.stringify(value, null, 2);
+    }
+
+    submitBtn.addEventListener('click', async () => {
+      let parsed;
+
+      try {
+        parsed = JSON.parse(inputData.value);
+      } catch (error) {
+        setStatus('Input must be valid JSON.', 'error');
+        renderOutput({ error: 'Invalid JSON input.' });
+        return;
+      }
+
+      if (!Array.isArray(parsed)) {
+        setStatus('Input must be a JSON array.', 'error');
+        renderOutput({ error: 'The payload should be an array of relationships.' });
+        return;
+      }
+
+      submitBtn.disabled = true;
+      setStatus('Processing request...', '');
+
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ data: parsed })
+        });
+
+        const payload = await response.json();
+
+        if (!response.ok) {
+          setStatus(payload.error || 'Request failed.', 'error');
+          renderOutput(payload);
+          return;
+        }
+
+        setStatus('Response received successfully.', 'success');
+        renderOutput(payload);
+      } catch (error) {
+        setStatus('Network error while calling /bfhl.', 'error');
+        renderOutput({ error: 'Could not reach the API.', details: String(error) });
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

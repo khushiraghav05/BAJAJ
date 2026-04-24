@@ -203,7 +203,7 @@
     const status = document.getElementById('status');
     const API_URL = window.BFHL_API_URL || (window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
       ? '/bfhl'
-      : 'https://YOUR-RENDER-SERVICE.onrender.com/bfhl');
+      : 'https://bfhl-hierarchy-processor.onrender.com/bfhl');
 
     function setStatus(message, type = '') {
       status.className = `status ${type}`.trim();

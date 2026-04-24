@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: bfhl-hierarchy-processor
+    env: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
